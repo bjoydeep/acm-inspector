@@ -22,6 +22,7 @@ def checkCPUUsage(startTime, endTime, step):
     status=clusterCPUUsage(pc,startTime, endTime, step)
     status=nodeCPUUsage(pc,startTime, endTime, step)
     status=kubeAPICPUUsage(pc,startTime, endTime, step)
+    status=kubeletCPUUsage(pc,startTime, endTime, step)
     status=ACMCPUUsage(pc,startTime, endTime, step)
     status=ACMDetailCPUUsage(pc,startTime, endTime, step)
     status=OtherCPUUsage(pc,startTime, endTime, step)
@@ -265,6 +266,43 @@ def kubeAPICPUUsage(pc,startTime, endTime, step):
    
     status=True
     return status  
+
+def kubeletCPUUsage(pc,startTime, endTime, step):
+
+    print("Total Kubelet CPU usage")
+
+    try:
+        kubelet_cpu = pc.custom_query('sum(rate(process_cpu_seconds_total{job="kubelet"}[2m]))')
+
+        kubelet_cpu_df = MetricSnapshotDataFrame(kubelet_cpu)
+        kubelet_cpu_df["value"]=kubelet_cpu_df["value"].astype(float)
+        kubelet_cpu_df.rename(columns={"value": "KubeletCPUUsage"}, inplace = True)
+        print(kubelet_cpu_df[['KubeletCPUUsage']].to_markdown())
+
+        kubelet_cpu_trend = pc.custom_query_range(
+        query='sum(rate(process_cpu_seconds_total{job="kubelet"}[2m]))',
+            start_time=startTime,
+            end_time=endTime,
+            step=step,
+        )
+
+        kubelet_cpu_trend_df = MetricRangeDataFrame(kubelet_cpu_trend)
+        kubelet_cpu_trend_df["value"]=kubelet_cpu_trend_df["value"].astype(float)
+        kubelet_cpu_trend_df.index= pandas.to_datetime(kubelet_cpu_trend_df.index, unit="s")
+        #node_cpu_trend_df =  node_cpu_trend_df.pivot( columns='node',values='value')
+        kubelet_cpu_trend_df.rename(columns={"value": "KubeletCPUUsage"}, inplace = True)
+        kubelet_cpu_trend_df.plot(title="Kubelet CPU usage",figsize=(30, 15))
+        plt.savefig('../../output/kubelet-cpu-usage.png')
+        saveCSV(kubelet_cpu_trend_df,"kubelet-cpu-usage",True)
+        plt.close('all')
+
+    except Exception as e:
+        print(Fore.RED+"Error in getting cpu for Kubelet Server: ",e) 
+        print(Style.RESET_ALL)   
+    print("=============================================")
+   
+    status=True
+    return status 
 
 def ACMCPUUsage(pc,startTime, endTime, step):
 

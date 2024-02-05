@@ -22,11 +22,13 @@ def checkMemoryUsage(startTime, endTime, step):
     #status=clusterMemUsage(pc,startTime, endTime, step)
     status=nodeMemUsage(pc,startTime, endTime, step)
     status=kubeAPIMemUsageRSS(pc,startTime, endTime, step)
+    status=kubeletMemUsageRSS(pc,startTime, endTime, step)
     status=ACMMemUsageRSS(pc,startTime, endTime, step)
     status=ACMDetailMemUsageRSS(pc,startTime, endTime, step)
     status=OtherMemUsageRSS(pc,startTime, endTime, step)
     status=OtherDetailMemUsageRSS(pc,startTime, endTime, step)
     status=kubeAPIMemUsageWSS(pc,startTime, endTime, step)
+    status=kubeletMemUsageWSS(pc,startTime, endTime, step)
     status=ACMMemUsageWSS(pc,startTime, endTime, step)
     status=ACMDetailMemUsageWSS(pc,startTime, endTime, step)
     status=OtherMemUsageWSS(pc,startTime, endTime, step)
@@ -284,6 +286,43 @@ def kubeAPIMemUsageRSS(pc,startTime, endTime, step):
     status=True
     return status  
 
+def kubeletMemUsageRSS(pc,startTime, endTime, step):
+
+    print("Total Kubelet Memory (rss) usage MB")
+
+    try:
+        kubelet_cpu = pc.custom_query('container_memory_rss{id=~"/system.slice/kubelet.service"}/(1024*1024)')
+
+        kubelet_cpu_df = MetricSnapshotDataFrame(kubelet_cpu)
+        kubelet_cpu_df["value"]=kubelet_cpu_df["value"].astype(float)
+        kubelet_cpu_df.rename(columns={"value": "KubeletMemUsageRSSMB"}, inplace = True)
+        print(kubelet_cpu_df[['KubeletMemUsageRSSMB']].to_markdown())
+
+        kubelet_cpu_trend = pc.custom_query_range(
+        query='container_memory_rss{id=~"/system.slice/kubelet.service"}/(1024*1024)',
+            start_time=startTime,
+            end_time=endTime,
+            step=step,
+        )
+
+        kubelet_cpu_trend_df = MetricRangeDataFrame(kubelet_cpu_trend)
+        kubelet_cpu_trend_df["value"]=kubelet_cpu_trend_df["value"].astype(float)
+        kubelet_cpu_trend_df.index= pandas.to_datetime(kubelet_cpu_trend_df.index, unit="s")
+        kubelet_cpu_trend_df=kubelet_cpu_trend_df.pivot( columns='job',values='value')
+        kubelet_cpu_trend_df.rename(columns={"value": "KubeletMemUsageRSSMB"}, inplace = True)
+        kubelet_cpu_trend_df.plot(title="Kubelet Memory (rss) usage GB",figsize=(30, 15))
+        plt.savefig('../../output/kubelet-mem-usage-rss.png')
+        saveCSV(kubelet_cpu_trend_df,"kubelet-mem-usage-rss",True)
+        plt.close('all')
+
+    except Exception as e:
+        print(Fore.RED+"Error in getting memory (rss) for Kubelet : ",e)    
+        print(Style.RESET_ALL)
+    print("=============================================")
+   
+    status=True
+    return status  
+
 def ACMMemUsageRSS(pc,startTime, endTime, step):
 
     print("Total ACM Memory (rss) usage GB")
@@ -462,6 +501,43 @@ def kubeAPIMemUsageWSS(pc,startTime, endTime, step):
 
     except Exception as e:
         print(Fore.RED+"Error in getting memory (wss) for Kube API Server: ",e)    
+        print(Style.RESET_ALL)
+    print("=============================================")
+   
+    status=True
+    return status  
+
+def kubeletMemUsageWSS(pc,startTime, endTime, step):
+
+    print("Total Kubelet Memory (wss) usage MB")
+
+    try:
+        kubelet_cpu = pc.custom_query('container_memory_working_set_bytes{id=~"/system.slice/kubelet.service"}/(1024*1024)')
+
+        kubelet_cpu_df = MetricSnapshotDataFrame(kubelet_cpu)
+        kubelet_cpu_df["value"]=kubelet_cpu_df["value"].astype(float)
+        kubelet_cpu_df.rename(columns={"value": "KubeletMemUsageWSSMB"}, inplace = True)
+        print(kubelet_cpu_df[['KubeletMemUsageWSSMB']].to_markdown())
+
+        kubelet_cpu_trend = pc.custom_query_range(
+        query='container_memory_working_set_bytes{id=~"/system.slice/kubelet.service"}/(1024*1024)',
+            start_time=startTime,
+            end_time=endTime,
+            step=step,
+        )
+
+        kubelet_cpu_trend_df = MetricRangeDataFrame(kubelet_cpu_trend)
+        kubelet_cpu_trend_df["value"]=kubelet_cpu_trend_df["value"].astype(float)
+        kubelet_cpu_trend_df.index= pandas.to_datetime(kubelet_cpu_trend_df.index, unit="s")
+        kubelet_cpu_trend_df=kubelet_cpu_trend_df.pivot( columns='job',values='value')
+        kubelet_cpu_trend_df.rename(columns={"value": "KubeletMemUsageWSSMB"}, inplace = True)
+        kubelet_cpu_trend_df.plot(title="Kubelet Memory (wss) usage GB",figsize=(30, 15))
+        plt.savefig('../../output/kubelet-mem-usage-wss.png')
+        saveCSV(kubelet_cpu_trend_df,"kubelet-mem-usage-wss",True)
+        plt.close('all')
+
+    except Exception as e:
+        print(Fore.RED+"Error in getting memory (wss) for Kubelet Server: ",e)    
         print(Style.RESET_ALL)
     print("=============================================")
    

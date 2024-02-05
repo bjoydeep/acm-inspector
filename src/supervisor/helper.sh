@@ -7,6 +7,9 @@ display_usage() {
     exit 1
 }
 
+CLUSTER=${CLUSTER:-hub}
+DURATION=${DURATION:-7d}
+
 # Check if the required number of arguments are provided
 #if [ "$#" -ne 2 ]; then
 #    display_usage
@@ -25,7 +28,7 @@ oc login ${OC_CLUSTER_URL} --token ${OC_TOKEN} --insecure-skip-tls-verify=true
 
 #python ~/code/acm-inspector/src/supervisor/entry.py prom
 cd /acm-inspector/src/supervisor
-python entry.py prom
+python3 entry.py prom ${CLUSTER} ${DURATION}
 
 
 
