@@ -10,4 +10,8 @@ graphviz
 pymannkendall
 scikit-learn
 seaborn
-
+pmdarima 
+statsmodels 
+prophet
+jupyter
+plotly
